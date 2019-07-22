@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--
+	Define custom attributes for the SlideMenu View
+-->
+<resources>
+	<declare-styleable name="SlideMenu">
+		<attr name="right_text" format="string"/>
+		<attr name="left_text" format="string"/>
+	</declare-styleable>
+</resources>
