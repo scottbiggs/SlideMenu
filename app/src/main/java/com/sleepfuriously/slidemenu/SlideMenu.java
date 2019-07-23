@@ -8,6 +8,7 @@ import android.graphics.Rect;
 import android.util.AttributeSet;
 import android.util.DisplayMetrics;
 import android.util.Log;
+import android.view.MotionEvent;
 
 import androidx.appcompat.widget.AppCompatButton;
 
@@ -63,6 +64,11 @@ public class SlideMenu extends AppCompatButton {
 
 	/** trash var, but declared and initialized globably for speed */
 	private Rect mRect;
+
+	/**
+	 * Listener for callbacks when the user slides left or right.
+	 */
+	private OnSlideMenuListener mOnSlideMenuListener = null;
 
 
 	//-------------------
@@ -127,6 +133,52 @@ public class SlideMenu extends AppCompatButton {
 	//  methods
 	//-------------------
 
+	/**
+	 * When the button is first touched, display the options (left and right).
+	 *
+	 * When the user slides their hand, illuminate/deluminate the options
+	 * appropriately.
+	 *
+	 * When the user's hand is lifted, call the left/right interface if
+	 * the hand was still in a proper position (and the option was illuminated,
+	 * of course).
+	 *
+	 * preconditions
+	 *      For the anything that uses this widget, the must call
+	 *      {@link #setOnSlideMenuListener(OnSlideMenuListener)}
+	 *      before any events occur. (duh!)
+	 *
+	 * @param   event   The MotionEvent that caused this.
+	 *
+	 * @return  True means the event was completely handled.
+	 */
+	@Override
+	public boolean onTouchEvent(MotionEvent event) {
+
+		switch (event.getAction()) {
+			case MotionEvent.ACTION_DOWN:
+				// todo
+				break;
+
+			case MotionEvent.ACTION_UP:
+				if (mOnSlideMenuListener != null) {
+					// Only do something if a listener exists
+					// todo
+				}
+				break;
+
+			case MotionEvent.ACTION_MOVE:
+				// todo
+				break;
+
+			default:
+				return false;   // Keep processing this unknown event
+		}
+
+		return true;    // event completely handled
+	}
+
+
 	@Override
 	protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
 //		Log.v("SlideMenu onMeasure w", MeasureSpec.toString(widthMeasureSpec));
@@ -169,21 +221,48 @@ public class SlideMenu extends AppCompatButton {
 	//  getters & setters
 	//-------------------
 
-	public String getmLeftText() {
+	public String getLeftText() {
 		return mLeftText;
 	}
 
-	public void setmLeftText(String mLeftText) {
-		this.mLeftText = mLeftText;
+	public void setLeftText(String leftText) {
+		this.mLeftText = leftText;
 	}
 
-	public String getmRightText() {
+	public String getRightText() {
 		return mRightText;
 	}
 
-	public void setmRightText(String mRightText) {
-		this.mRightText = mRightText;
+	public void setRightText(String rightText) {
+		this.mRightText = rightText;
 	}
 
+	public OnSlideMenuListener getOnSlideMenuListener() {
+		return mOnSlideMenuListener;
+	}
+
+	public void setOnSlideMenuListener(OnSlideMenuListener onSlideMenuListener) {
+		this.mOnSlideMenuListener = onSlideMenuListener;
+	}
+
+
+	//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	//  interfaces
+	//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+	public interface OnSlideMenuListener {
+
+		/**
+		 * This method is called when the user has chosen
+		 * the left option.
+		 */
+		void onSlideLeft();
+
+		/**
+		 * This method is called when the user has chosen
+		 * the right option.
+		 */
+		void onSlideRight();
+	}
 
 }
