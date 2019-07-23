@@ -35,7 +35,7 @@ public class SlideMenu extends AppCompatButton {
 //			DIP_WIDTH = (int) (DIPS_PER_MM * (9f + 7f + 7f));
 
 	/**
-	 * Now I just want a square about 8mm per side
+	 * Now I just want a square about 8mm per side.
 	 */
 	private static final int DIP_HEIGHT = (int) (DIPS_PER_MM * 8f);
 	private static final int DIP_WIDTH = (int) (DIPS_PER_MM * 8f);
@@ -65,10 +65,36 @@ public class SlideMenu extends AppCompatButton {
 	/** trash var, but declared and initialized globably for speed */
 	private Rect mRect;
 
+	/** area of this View in absolute screen coords */
+	private Rect mMainRectScreenCoords;
+
+	/**
+	 * Boundaries for the option menu areas.
+	 * When the user's touch is within these boundaries, the appropriate
+	 * menu should display.  And when the user releases within these
+	 * boundaries, that action will be taken.<br>
+	 * <br>
+	 * These are Rects that are the same size as this widget, just to
+	 * the left and right.
+	 */
+	private Rect mLeftOptionRect, mRightOptionRect;
+
 	/**
 	 * Listener for callbacks when the user slides left or right.
 	 */
 	private OnSlideMenuListener mOnSlideMenuListener = null;
+
+	/**
+	 * Holds the position of the last touch ACTION_DOWN event.
+	 */
+	private float mTouchStartX, mTouchStartY;
+
+	/**
+	 * True means that the user's finger is currently over the
+	 * left/right menu area.
+	 */
+
+	private boolean mLeftActive = false, mRightActive = false;
 
 
 	//-------------------
@@ -111,8 +137,39 @@ public class SlideMenu extends AppCompatButton {
 		mWidth = (int) ((float) DIP_WIDTH * mPixelDensity);
 		mHeight = (int) ((float) DIP_HEIGHT * mPixelDensity);
 
+		mLeftOptionRect = new Rect();   // filled in after the layout is done
+		mRightOptionRect = new Rect();
+		mMainRectScreenCoords = new Rect();
+
 		// disable built-in background
 		setBackgroundResource(0);
+	}
+
+
+	@Override
+	public void onWindowFocusChanged(boolean hasWindowFocus) {
+		super.onWindowFocusChanged(hasWindowFocus);
+
+		getGlobalVisibleRect(mMainRectScreenCoords);
+
+		// The left option area is 8mm to the left and includes the left third
+		// of this widget.  Similar for the right option area.
+		mLeftOptionRect.set(mMainRectScreenCoords);
+		mLeftOptionRect.left -= getWidth();
+		mLeftOptionRect.right -= getWidth() + (getWidth() / 3);
+
+		mRightOptionRect.set(mMainRectScreenCoords);
+		mRightOptionRect.right += getWidth();
+		mRightOptionRect.left += getWidth() - (getWidth() / 3);
+
+//		Log.d(TAG, "main rect = " + mMainRectScreenCoords);
+//		Log.d(TAG, "left rect = " + mLeftOptionRect);
+//		Log.d(TAG, "right rect = " + mRightOptionRect);
+	}
+
+	@Override
+	protected void onFinishInflate() {
+		super.onFinishInflate();
 	}
 
 	/**
@@ -157,18 +214,51 @@ public class SlideMenu extends AppCompatButton {
 
 		switch (event.getAction()) {
 			case MotionEvent.ACTION_DOWN:
-				// todo
+				mTouchStartX = event.getRawX();
+				mTouchStartY = event.getRawY();
+				Log.d(TAG, "onTouch() - ACTION_DOWN, x = " + mTouchStartX + ", y = " + mTouchStartY);
 				break;
 
 			case MotionEvent.ACTION_UP:
+				// Only do something if a listener exists
 				if (mOnSlideMenuListener != null) {
-					// Only do something if a listener exists
-					// todo
+					if (mLeftActive) {
+						mOnSlideMenuListener.onSlideLeft();
+						mLeftActive = false;
+						mRightActive = false;
+					}
+					else if (mRightActive) {
+						mOnSlideMenuListener.onSlideRight();
+						mLeftActive = false;
+						mRightActive = false;
+					}
 				}
 				break;
 
 			case MotionEvent.ACTION_MOVE:
-				// todo
+				if (isInLeftActionArea((int)event.getRawX(), (int)event.getRawY())) {
+					if (mLeftActive != true) {
+						mLeftActive = true;
+						drawLeftOption();
+					}
+				}
+				else if (isInRightActionArea((int)event.getRawX(), (int)event.getRawY())) {
+					if (mRightActive != true) {
+						mRightActive = true;
+						drawRightOption();
+					}
+				}
+				else {
+					// no longer in any drawing area, undraw if necessary
+					if (mLeftActive) {
+						undrawLeftOption();
+						mLeftActive = false;
+					}
+					else if (mRightActive) {
+						undrawRightOption();
+						mRightActive = false;
+					}
+				}
 				break;
 
 			default:
@@ -178,6 +268,43 @@ public class SlideMenu extends AppCompatButton {
 		return true;    // event completely handled
 	}
 
+
+	/**
+	 * Determines if the given coordinates are within the area designated
+	 * as the left option area.
+	 */
+	private boolean isInLeftActionArea(int x, int y) {
+		return mLeftOptionRect.contains(x, y);
+	}
+
+	/**
+	 * Determines if the given coordinates are within the area designated
+	 * as the right option area.
+	 */
+	private boolean isInRightActionArea(int x, int y) {
+		return mRightOptionRect.contains(x, y);
+	}
+
+
+	private void drawLeftOption() {
+		Log.d(TAG, "left option drawn");
+		// todo
+	}
+
+	private void drawRightOption() {
+		Log.d(TAG, "right option drawn");
+		// todo
+	}
+
+	private void undrawLeftOption() {
+		Log.d(TAG, "left option UNdrawn");
+		// todo
+	}
+
+	private void undrawRightOption() {
+		Log.d(TAG, "right option UNdrawn");
+		// todo
+	}
 
 	@Override
 	protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {

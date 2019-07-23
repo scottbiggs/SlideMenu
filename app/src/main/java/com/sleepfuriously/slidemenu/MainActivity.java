@@ -4,6 +4,7 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import android.os.Bundle;
 import android.widget.TextView;
+import android.widget.Toast;
 
 public class MainActivity extends AppCompatActivity
 		implements SlideMenu.OnSlideMenuListener {
@@ -41,11 +42,11 @@ public class MainActivity extends AppCompatActivity
 
 	@Override
 	public void onSlideLeft() {
-		// todo
+		Toast.makeText(this, "left", Toast.LENGTH_SHORT).show();
 	}
 
 	@Override
 	public void onSlideRight() {
-		// todo
+		Toast.makeText(this, "right", Toast.LENGTH_SHORT).show();
 	}
 }
