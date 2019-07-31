@@ -26,7 +26,7 @@ import androidx.appcompat.widget.AppCompatButton;
  *<br>
  * And uses four rectangles:
  *      <li>Orig - Describes the original XML defined rectangle</li>
- *      <li>Full - Includes the extra area for the menus</li>
+ *      <li>Full - Includes the entire clipping area for the menus, text, and anything else</li>
  *      <li>Left - Area for the left menu to become active</li>
  *      <li>Right - Area for the right menu to become active</li>
  *<br>
@@ -39,7 +39,7 @@ import androidx.appcompat.widget.AppCompatButton;
  *      <li>Relative - relative to (0,0) of the Orig Rect</li>
  *      <li>Screen - based on 0,0 being top left of the device's screen</li>
  *<br>
- * Note that FullRect contains LeftRect and RightRect (as well as OrigRect).<br>
+ * Note that FullRect contains OrigRect, LeftRect, RightRect, and any text etc.<br>
  *<br>
  * Relevant variables and constants will include information in their
  * names.<br>
@@ -50,7 +50,7 @@ import androidx.appcompat.widget.AppCompatButton;
  * even fire.<br>
  *<br>
  * Most of the constants deal with sizes in terms of millimeters.  This is
- * useful for designers, but hard on programmers.  So many variables and
+ * useful for designers, but hard on programmers.  Thus many variables and
  * constants will have both.  The suffix will distinguish which is which
  * (furthermore mm vars will be <code>floats</code> while dp vars will
  * always be <code>ints</code>--at least that's what I'm striving for).
@@ -91,7 +91,7 @@ public class SlideMenu extends AppCompatButton {
 	 * Since the widget is symmetrical, these are the same.
  	 */
 	private static final float
-			ADDITIONAL_WIDTH_LEFT_MM = 9f;
+			ADDITIONAL_WIDTH_LEFT_MM = 11f;
 	private static final float
 			ADDITIONAL_WIDTH_RIGHT_MM = ADDITIONAL_WIDTH_LEFT_MM;
 
@@ -103,13 +103,18 @@ public class SlideMenu extends AppCompatButton {
 			ADDITIONAL_WIDTH_RIGHT_DP =
 				(int) (ADDITIONAL_WIDTH_RIGHT_MM * DP_PER_MM);
 
+	/** width of full rect in mm */
+	private static final float FULL_WIDTH_MM =
+			ORIG_SIDE_MM + ADDITIONAL_WIDTH_LEFT_MM + ADDITIONAL_WIDTH_RIGHT_MM;
 	/** Width of Full rectangle in pixels */
-	private static final int FULL_WIDTH_DP =
-			ORIG_SIDE_DP + ADDITIONAL_WIDTH_LEFT_DP + ADDITIONAL_WIDTH_RIGHT_DP;
+	private static final int FULL_WIDTH_DP = (int) (FULL_WIDTH_MM * DP_PER_MM);
+
+	/** height of full rect in mm */
+	private static final float FULL_HEIGHT_MM =
+			ORIG_SIDE_MM + ADDITIONAL_HEIGHT_MM;
 
 	/** Height of Full rectangle in pixels */
-	private static final int FULL_HEIGHT_DP =
-			ORIG_SIDE_DP + ADDITIONAL_HEIGHT_DP;
+	private static final int FULL_HEIGHT_DP = (int) (FULL_HEIGHT_MM * DP_PER_MM);
 
 	//-------------------
 	//  data
@@ -216,6 +221,10 @@ public class SlideMenu extends AppCompatButton {
 	 */
 	private void init() {
 
+		// Force onDraw() to be called every time invalide() is called.
+		// This is a standard thing any time onDraw() is overridden.
+		setWillNotDraw(false);
+
 		mTmpRect = new Rect();
 
 		// todo: make this look much prettier
@@ -232,7 +241,7 @@ public class SlideMenu extends AppCompatButton {
 		mRightPaint.setColor(getResources().getColor(R.color.right_option_color));
 
 		// Get display metrics. They'll be useful later.
-		DisplayMetrics mMetrics = getResources().getDisplayMetrics();
+		mMetrics = getResources().getDisplayMetrics();
 		mPixelDensity = mMetrics.density;
 
 		// calculate the sizes we want for this widget based on current
@@ -262,7 +271,10 @@ public class SlideMenu extends AppCompatButton {
 		super.onWindowFocusChanged(hasWindowFocus);
 
 		getDrawingRect(mOrigRelativeCoordsApRect);
-		getGlobalVisibleRect(mOrigScreenCoordsApRect);
+		if (getGlobalVisibleRect(mOrigScreenCoordsApRect) == false) {
+			Log.e(TAG, "Unable to get clipping coords in onWindowFocusChanged()!");
+			return;
+		}
 
 		// Calculate the full rect
 		mFullRelativeApRect = new Rect(mOrigRelativeCoordsApRect);
@@ -271,11 +283,12 @@ public class SlideMenu extends AppCompatButton {
 		mFullRelativeApRect.right += (int) ((float)ADDITIONAL_WIDTH_RIGHT_DP * mPixelDensity);
 
 		// test to make sure I did the calculations right
-		if (mFullRelativeApRect.width() != mFullWidthAp) {
-			Log.e(TAG, "widths don't match in onWindowFocusChanged!");
-			// todo: exit more gracefully
-			((Activity)getContext()).finish();
-		}
+		// todo: figure out the rounding errors that happen here
+//		if (mFullRelativeApRect.width() != mFullWidthAp) {
+//			Log.e(TAG, "widths don't match in onWindowFocusChanged!");
+//			// todo: exit more gracefully
+//			((Activity)getContext()).finish();
+//		}
 
 		// calculate option menu areas
 		calcLeftOptionRect(mOrigRelativeCoordsApRect, mLeftOptionRelativeApRect);
@@ -385,16 +398,17 @@ public class SlideMenu extends AppCompatButton {
 						mRightActive = false;
 					}
 				}
+				invalidate();
 				break;
 
 			case MotionEvent.ACTION_MOVE:
-				if (isInLeftActionArea((int)event.getRawX(), (int)event.getRawY())) {
+				if (isInLeftActionArea((int)event.getX(), (int)event.getY())) {
 					if (mLeftActive != true) {
 						mLeftActive = true;
 						invalidate();
 					}
 				}
-				else if (isInRightActionArea((int)event.getRawX(), (int)event.getRawY())) {
+				else if (isInRightActionArea((int)event.getX(), (int)event.getY())) {
 					if (mRightActive != true) {
 						mRightActive = true;
 						invalidate();
@@ -440,41 +454,23 @@ public class SlideMenu extends AppCompatButton {
 
 	/**
 	 * Draws the left option menu.  Should only be called from onDraw() or
-	 * one of its children as it needs a Canvas.
+	 * one of its children as it needs a Canvas.<br>
+	 *<br>
+	 * preconditions:
+	 *<li>      mLeftPaint      initialized
 	 *
 	 * @param canvas    Standard Canvas to draw on.
 	 *
 	 * @param startRect The starting rect of the widget (NOT the left
 	 *                  options menu area--the regular area).
-	 *
-//	 * @param workRect  A temporary Rect to play with, already initialized.
-	 *
-	 * preconditions:
-	 *      mLeftPaint      initialized
+	 *                  I think this should be in <em>screen coords</em>. todo: test this!
 	 */
 	private void drawLeftOption(Canvas canvas, Rect startRect) {
-
-		// find the drawing area for this left option area
-//		Rect calculatedRect = new Rect();
-//		calcLeftOptionRect(canvas.getClipBounds(), calculatedRect);
-
-		// extend the clipping area of the startRect to include the area to
-		// be drawn.
-//		Rect bounds = canvas.getClipBounds();
-//		workRect.union(bounds);
-//		canvas.clipRect(workRect);
-
-//		canvas.clipRect(calculatedRect, Region.Op.UNION);
-//		canvas.drawRect(calculatedRect, mLeftPaint);
-
 		canvas.drawRect(mLeftOptionRelativeApRect, mLeftPaint);
-//		Log.d(TAG, "left option drawn");
 	}
 
 	private void drawRightOption(Canvas canvas) {
-		Log.d(TAG, "right option drawn");
-		// todo
-//		canvas.drawRect(mRightOptionRelativeRect, mRightPaint);
+		canvas.drawRect(mRightOptionRelativeApRect, mRightPaint);
 	}
 
 	private void undrawLeftOption() {
@@ -502,7 +498,9 @@ public class SlideMenu extends AppCompatButton {
 
 	@Override
 	protected void onDraw(Canvas canvas) {
-		Log.d(TAG, "onDraw()");
+
+		// draw everything else todo: is this necessary?
+		super.onDraw(canvas);
 
 		// first things first: increase the clip rect
 		if (mFullRelativeApRect != null) {
@@ -513,20 +511,25 @@ public class SlideMenu extends AppCompatButton {
 		canvas.drawColor(getResources().getColor(R.color.colorAccent));
 
 		getDrawingRect(mTmpRect);
-		canvas.drawCircle(mTmpRect.left + (mTmpRect.width() / 2), mTmpRect.top + (mTmpRect.height() / 2),
-				mTmpRect.width() / 2,
-				mOrigPaint);
 
-		// draw everything else
-		super.onDraw(canvas);
+		// draw the circle for this button
+		float x = mTmpRect.left + ((float)(mTmpRect.width()) / 2f);	// center within mTmpRect
+		float y = mTmpRect.top + ((float)(mTmpRect.height()) / 2f);
+
+		float radius = ((float)mTmpRect.width()) / 2f;
+		radius -= ((float)CIRCLE_STROKE_WIDTH_DP) / 2f;	// Make sure the circle's stroke stays inside
+														// the bounds of Orig area
+		canvas.drawCircle(x, y, radius, mOrigPaint);
 
 		// Now draw any option menu
 		if (mLeftActive) {
-			drawLeftOption(canvas, mTmpRect);
+//			drawLeftOption(canvas, mTmpRect);
+			drawLeftOption(canvas, mLeftOptionRelativeApRect);
 		}
 		else if (mRightActive) {
 			drawRightOption(canvas);
 		}
+
 	}
 
 	//-------------------
