@@ -1,6 +1,5 @@
 package com.sleepfuriously.slidemenu;
 
-import android.app.Activity;
 import android.content.Context;
 import android.content.res.TypedArray;
 import android.graphics.Canvas;
@@ -18,19 +17,14 @@ import androidx.appcompat.widget.AppCompatButton;
 /**
  * <h2>Dev notes:</h2>
  *
- * This widget has three sizes:
- *     <li>Orig - The size set from the XML definition</li>
- *     <li>Additional - Dimensions to <em>add</em> to Orig to get the Full areas
- *         (kind of an intermediary between the two).</li>
- *     <li>Full - Includes the extra area for the menus</li>
+ * This widget has several rectangles:
+ *     <li>Orig - The size set from the XML definition. It's actually a square.</li>
+ *     <li>Clip - The largest possible dimensions of anything this widget may draw</li>
+ *     <li>LZ (Landing Zone) - Defines the rectangle to activate a menu</li>
+ *     <li>LeftLz & RightLz - Distinguishes between the left and right landing zones</li>
  *<br>
- * And uses four rectangles:
- *      <li>Orig - Describes the original XML defined rectangle</li>
- *      <li>Full - Includes the entire clipping area for the menus, text, and anything else</li>
- *      <li>Left - Area for the left menu to become active</li>
- *      <li>Right - Area for the right menu to become active</li>
- *<br>
- * There are two pixel sizes:
+ * There are three sizes:
+ * 		<li>mm - millimeters, yes actual size from user's pov!</li>
  *      <li>Dp - Density Independent Pixels (aka DiP)</li>
  *      <li>Ap - Actual Pixels, the number of pixels after translating for
  *              the current screen density</li>
@@ -39,15 +33,19 @@ import androidx.appcompat.widget.AppCompatButton;
  *      <li>Relative - relative to (0,0) of the Orig Rect</li>
  *      <li>Screen - based on 0,0 being top left of the device's screen</li>
  *<br>
- * Note that FullRect contains OrigRect, LeftRect, RightRect, and any text etc.<br>
- *<br>
- * Relevant variables and constants will include information in their
- * names.<br>
- *<br>
+ * And there are three slop distances, called Clip Additional. These define the extra
+ * area of the clipping region that's not otherwise specified (like for text and other
+ * animations).  It's actually the slop that makes it look good.
+ * 		<li>ClipAdditionalHeightTop</li>
+ * 		<li>ClipAdditionalLeft</li>
+ * 		<li>ClipAdditionalRight</li>
+ *
+ * <h3>How it Works</h3>
+ *
  * Once the OrigRect is touched and slid (left or right), the relevant menu will
- * appear in the LeftRect or RightRect.  It will disappear if the finger leaves the
+ * appear in the LeftLz or RightLz.  It will disappear if the finger leaves the
  * region.  Only if the finger is lifted when the menu is showing will a menu
- * even fire.<br>
+ * event fire.<br>
  *<br>
  * Most of the constants deal with sizes in terms of millimeters.  This is
  * useful for designers, but hard on programmers.  Thus many variables and
@@ -69,6 +67,7 @@ public class SlideMenu extends AppCompatButton {
 	/** mms wide a circle's stroke should be */
 	private static final float CIRCLE_STROKE_WIDTH_MM = 1f;
 	private static final int CIRCLE_STROKE_WIDTH_DP = (int) (CIRCLE_STROKE_WIDTH_MM * DP_PER_MM);
+	// todo: should make a variable so that the stroke width is properly set for screen density
 
 	/**
 	 * The size of the original widget's side (it's always a square)
@@ -76,14 +75,14 @@ public class SlideMenu extends AppCompatButton {
 	 */
 	private static final float ORIG_SIDE_MM = 9f;
 	/** Size of the size of a side of the original square in DiP */
-	private static final int ORIG_SIDE_DP =
-			(int) (ORIG_SIDE_MM * DP_PER_MM);
+//	private static final int ORIG_SIDE_DP =
+//			(int) (ORIG_SIDE_MM * DP_PER_MM);
 
 	/** Extra height needed above the original widget (in mm) */
-	private static final float ADDITIONAL_HEIGHT_MM = 9f;
+	private static final float CLIP_ADDITIONAL_HEIGHT_MM = 9f;
 	/** additional height in DiPs */
-	private static final int ADDITIONAL_HEIGHT_DP =
-			(int) (ADDITIONAL_HEIGHT_MM * DP_PER_MM);
+//	private static final int ADDITIONAL_HEIGHT_DP =
+//			(int) (CLIP_ADDITIONAL_HEIGHT_MM * DP_PER_MM);
 
 	/**
 	 * Extra width needed for the full rect beyond the original widget
@@ -91,30 +90,30 @@ public class SlideMenu extends AppCompatButton {
 	 * Since the widget is symmetrical, these are the same.
  	 */
 	private static final float
-			ADDITIONAL_WIDTH_LEFT_MM = 11f;
+			CLIP_ADDITIONAL_WIDTH_LEFT_MM = 11f;
 	private static final float
-			ADDITIONAL_WIDTH_RIGHT_MM = ADDITIONAL_WIDTH_LEFT_MM;
+			CLIP_ADDITIONAL_WIDTH_RIGHT_MM = CLIP_ADDITIONAL_WIDTH_LEFT_MM;
 
 	/** same as above, but in DiPs */
-	private static final int
-			ADDITIONAL_WIDTH_LEFT_DP =
-				(int) (ADDITIONAL_WIDTH_LEFT_MM * DP_PER_MM);
-	private static final int
-			ADDITIONAL_WIDTH_RIGHT_DP =
-				(int) (ADDITIONAL_WIDTH_RIGHT_MM * DP_PER_MM);
+//	private static final int
+//			ADDITIONAL_WIDTH_LEFT_DP =
+//				(int) (CLIP_ADDITIONAL_WIDTH_LEFT_MM * DP_PER_MM);
+//	private static final int
+//			ADDITIONAL_WIDTH_RIGHT_DP =
+//				(int) (CLIP_ADDITIONAL_WIDTH_RIGHT_MM * DP_PER_MM);
 
-	/** width of full rect in mm */
-	private static final float FULL_WIDTH_MM =
-			ORIG_SIDE_MM + ADDITIONAL_WIDTH_LEFT_MM + ADDITIONAL_WIDTH_RIGHT_MM;
+	/** width of clip rect in mm */
+	private static final float CLIP_WIDTH_MM =
+			ORIG_SIDE_MM + CLIP_ADDITIONAL_WIDTH_LEFT_MM + CLIP_ADDITIONAL_WIDTH_RIGHT_MM;
 	/** Width of Full rectangle in pixels */
-	private static final int FULL_WIDTH_DP = (int) (FULL_WIDTH_MM * DP_PER_MM);
+//	private static final int FULL_WIDTH_DP = (int) (FULL_WIDTH_MM * DP_PER_MM);
 
 	/** height of full rect in mm */
-	private static final float FULL_HEIGHT_MM =
-			ORIG_SIDE_MM + ADDITIONAL_HEIGHT_MM;
+	private static final float CLIP_HEIGHT_MM =
+			ORIG_SIDE_MM + CLIP_ADDITIONAL_HEIGHT_MM;
 
 	/** Height of Full rectangle in pixels */
-	private static final int FULL_HEIGHT_DP = (int) (FULL_HEIGHT_MM * DP_PER_MM);
+//	private static final int FULL_HEIGHT_DP = (int) (FULL_HEIGHT_MM * DP_PER_MM);
 
 	//-------------------
 	//  data
@@ -123,6 +122,13 @@ public class SlideMenu extends AppCompatButton {
 		//===============
 		//  general data
 		//
+
+	/**
+	 * When TRUE, it's the first time this widget is drawn (good time to do some
+	 * initiazation).
+	 */
+
+	private boolean mFirstTime = true;
 
 	/** Strings to display in left & right bubbles */
 	private String mLeftText, mRightText;
@@ -169,10 +175,10 @@ public class SlideMenu extends AppCompatButton {
 	private int mOrigWidthAp, mOrigHeightAp;
 
 	/**
-	 * Desired final (Full) size of this widget in current screen density pixels
-	 * (Actual Pixels). Does not include padding.
+	 * Clipping size of this widget in current screen density pixels
+	 * (Actual Pixels). ALL drawing will be within these boundaries
 	 */
-	private int mFullWidthAp, mFullHeightAp;
+	private int mClipWidthAp, mClipHeightAp;
 
 	/** area of the original View in absolute screen coords */
 	private Rect mOrigScreenCoordsApRect;
@@ -180,12 +186,8 @@ public class SlideMenu extends AppCompatButton {
 	/** Area of the View in relative coords (top left will always be 0,0) */
 	private Rect mOrigRelativeCoordsApRect;
 
-	/**
-	 * Area of the full view in coords relative to the original.
-	 * Yes, that means that the left and top will be negative.
-	 * This is used for setting clipping boundaries.
- 	 */
-	private Rect mFullRelativeApRect;
+	/** Describes the clipping rect in relative screen coords */
+	private Rect mClipRelativeApRect;
 
 	/**
 	 * Boundaries for the option menu areas.
@@ -193,7 +195,7 @@ public class SlideMenu extends AppCompatButton {
 	 * menu should display.  And when the user releases within these
 	 * boundaries, that action will be taken.<br>
 	 */
-	private Rect mLeftOptionRelativeApRect, mRightOptionRelativeApRect;
+	private Rect mLeftRelativeApRect, mRightRelativeApRect;
 
 	//-------------------
 	//  constructors & initializers
@@ -221,6 +223,8 @@ public class SlideMenu extends AppCompatButton {
 	 */
 	private void init() {
 
+		mFirstTime = true;
+
 		// Force onDraw() to be called every time invalide() is called.
 		// This is a standard thing any time onDraw() is overridden.
 		setWillNotDraw(false);
@@ -246,15 +250,16 @@ public class SlideMenu extends AppCompatButton {
 
 		// calculate the sizes we want for this widget based on current
 		// screen density
-		mOrigWidthAp = (int) (mPixelDensity * (float) ORIG_SIDE_DP);
-		mOrigHeightAp = (int) (mPixelDensity * (float) ORIG_SIDE_DP);
+		mOrigWidthAp = mmToPixels(ORIG_SIDE_MM);
+		mOrigHeightAp = mmToPixels(ORIG_SIDE_MM);
 
-		mFullWidthAp = (int) (mPixelDensity * (float) FULL_WIDTH_DP);
-		mFullHeightAp = (int) (mPixelDensity * (float) FULL_HEIGHT_DP);
+		mClipWidthAp = mmToPixels(CLIP_WIDTH_MM);
+		mClipHeightAp = mmToPixels(CLIP_HEIGHT_MM);
+
 
 		// These will be filled in after the layout is done drawing
-		mLeftOptionRelativeApRect = new Rect();
-		mRightOptionRelativeApRect = new Rect();
+		mLeftRelativeApRect = new Rect();
+		mRightRelativeApRect = new Rect();
 		mOrigRelativeCoordsApRect = new Rect();
 		mOrigScreenCoordsApRect = new Rect();
 
@@ -263,12 +268,11 @@ public class SlideMenu extends AppCompatButton {
 	}
 
 
-	// I'm overriding this as there are several variables that I need
-	// to set, but they won't be ready until after the measuring is
-	// done, which is here.
-	@Override
-	public void onWindowFocusChanged(boolean hasWindowFocus) {
-		super.onWindowFocusChanged(hasWindowFocus);
+	/**
+	 * Initializes all sorts of variables that can't be initialized until the last
+	 * minute (because they need info that won't be ready until the last minute).
+	 */
+	private void firstTimeInit() {
 
 		getDrawingRect(mOrigRelativeCoordsApRect);
 		if (getGlobalVisibleRect(mOrigScreenCoordsApRect) == false) {
@@ -276,23 +280,19 @@ public class SlideMenu extends AppCompatButton {
 			return;
 		}
 
-		// Calculate the full rect
-		mFullRelativeApRect = new Rect(mOrigRelativeCoordsApRect);
-		mFullRelativeApRect.top = mFullRelativeApRect.bottom - mFullHeightAp;
-		mFullRelativeApRect.left -= (int) ((float)ADDITIONAL_WIDTH_LEFT_DP * mPixelDensity);
-		mFullRelativeApRect.right += (int) ((float)ADDITIONAL_WIDTH_RIGHT_DP * mPixelDensity);
+		// calc clipping rect
+		mClipRelativeApRect = new Rect(mOrigRelativeCoordsApRect);
+		mClipRelativeApRect.top = mClipRelativeApRect.bottom - mClipHeightAp;
 
-		// test to make sure I did the calculations right
-		// todo: figure out the rounding errors that happen here
-//		if (mFullRelativeApRect.width() != mFullWidthAp) {
-//			Log.e(TAG, "widths don't match in onWindowFocusChanged!");
-//			// todo: exit more gracefully
-//			((Activity)getContext()).finish();
-//		}
+		int centerX = (mOrigRelativeCoordsApRect.right - mOrigRelativeCoordsApRect.left) / 2;
+		int halfWidth = mClipWidthAp / 2;
+
+		mClipRelativeApRect.right =  centerX + halfWidth;
+		mClipRelativeApRect.left = centerX - halfWidth;
 
 		// calculate option menu areas
-		calcLeftOptionRect(mOrigRelativeCoordsApRect, mLeftOptionRelativeApRect);
-		calcRightOptionRect(mOrigRelativeCoordsApRect, mRightOptionRelativeApRect);
+		calcLeftOptionRect(mOrigRelativeCoordsApRect, mLeftRelativeApRect);
+		calcRightOptionRect(mOrigRelativeCoordsApRect, mRightRelativeApRect);
 	}
 
 
@@ -313,6 +313,23 @@ public class SlideMenu extends AppCompatButton {
 	//-------------------
 	//  methods
 	//-------------------
+
+
+	/**
+	 * Converts millimeters to current screen pixels.
+	 *
+	 * preconditions:
+	 * 		mPixelDensity	Properly set for this screen
+	 *
+	 * @param mm	The number of millimeters
+	 *
+	 * @return	The closest number of pixels for this screen to display the
+	 * 			requested millimeters.
+	 */
+	private int mmToPixels(float mm) {
+		return (int) (mPixelDensity * DP_PER_MM * mm);
+	}
+
 
 	/**
 	 * Calculates the location of the left options menu rect based on the
@@ -440,7 +457,7 @@ public class SlideMenu extends AppCompatButton {
 	 * as the left option area.
 	 */
 	private boolean isInLeftActionArea(int x, int y) {
-		return mLeftOptionRelativeApRect.contains(x, y);
+		return mLeftRelativeApRect.contains(x, y);
 	}
 
 	/**
@@ -448,7 +465,7 @@ public class SlideMenu extends AppCompatButton {
 	 * as the right option area.
 	 */
 	private boolean isInRightActionArea(int x, int y) {
-		return mRightOptionRelativeApRect.contains(x, y);
+		return mRightRelativeApRect.contains(x, y);
 	}
 
 
@@ -466,11 +483,11 @@ public class SlideMenu extends AppCompatButton {
 	 *                  I think this should be in <em>screen coords</em>. todo: test this!
 	 */
 	private void drawLeftOption(Canvas canvas, Rect startRect) {
-		canvas.drawRect(mLeftOptionRelativeApRect, mLeftPaint);
+		canvas.drawRect(mLeftRelativeApRect, mLeftPaint);
 	}
 
 	private void drawRightOption(Canvas canvas) {
-		canvas.drawRect(mRightOptionRelativeApRect, mRightPaint);
+		canvas.drawRect(mRightRelativeApRect, mRightPaint);
 	}
 
 	private void undrawLeftOption() {
@@ -502,9 +519,14 @@ public class SlideMenu extends AppCompatButton {
 		// draw everything else todo: is this necessary?
 		super.onDraw(canvas);
 
+		if (mFirstTime) {
+			firstTimeInit();
+			mFirstTime = false;
+		}
+
 		// first things first: increase the clip rect
-		if (mFullRelativeApRect != null) {
-			canvas.clipRect(mFullRelativeApRect, Region.Op.REPLACE);
+		if (mClipRelativeApRect != null) {
+			canvas.clipRect(mClipRelativeApRect, Region.Op.REPLACE);
 		}
 
 		// draw a background so we'll know how big the canvas is
@@ -524,7 +546,7 @@ public class SlideMenu extends AppCompatButton {
 		// Now draw any option menu
 		if (mLeftActive) {
 //			drawLeftOption(canvas, mTmpRect);
-			drawLeftOption(canvas, mLeftOptionRelativeApRect);
+			drawLeftOption(canvas, mLeftRelativeApRect);
 		}
 		else if (mRightActive) {
 			drawRightOption(canvas);
