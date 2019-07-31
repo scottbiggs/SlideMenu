@@ -141,6 +141,9 @@ public class SlideMenu extends AppCompatButton {
 	/** Paint for the right option menu */
 	private Paint mRightPaint;
 
+	/** Paint to draw the original circle when a finger is down on it */
+	private Paint mDownPaint;
+
 	/** all sorts of data about the current screen */
 	private DisplayMetrics mMetrics;
 
@@ -165,6 +168,9 @@ public class SlideMenu extends AppCompatButton {
 	 * left/right menu area.
 	 */
 	private boolean mLeftActive = false, mRightActive = false;
+
+	/** When TRUE, the user's finger is down on this View (and possibly sliding around) */
+	private boolean mFingerDown = false;
 
 		//===============
 		//  size and position data
@@ -234,8 +240,12 @@ public class SlideMenu extends AppCompatButton {
 		mOrigPaint = new Paint();
 		mOrigPaint.setColor(getResources().getColor(R.color.background_color));
 		mOrigPaint.setStyle(Paint.Style.STROKE);
-		mOrigPaint.setStrokeWidth(CIRCLE_STROKE_WIDTH_DP);
+		mOrigPaint.setStrokeWidth(CIRCLE_STROKE_WIDTH_DP);	// todo: make this work with diff screen densities
 
+		mDownPaint = new Paint();
+		mDownPaint.setColor(getResources().getColor(R.color.down_color));
+		mDownPaint.setStyle(Paint.Style.STROKE);
+		mDownPaint.setStrokeWidth(CIRCLE_STROKE_WIDTH_DP);	// todo: make this work with diff screen densities
 
 		// todo: make prettier
 		mLeftPaint = new Paint();
@@ -366,9 +376,12 @@ public class SlideMenu extends AppCompatButton {
 			case MotionEvent.ACTION_DOWN:
 				mTouchStartRelativeX = event.getRawX();
 				mTouchStartRelativeY = event.getRawY();
-				Log.d(TAG, "onTouch() - ACTION_DOWN, x = " + mTouchStartRelativeX + ", y = " + mTouchStartRelativeY);
 
-				// todo: change the paint!
+				if (mFingerDown == false) {
+					mFingerDown = true;
+					invalidate();
+				}
+				Log.d(TAG, "onTouch() - ACTION_DOWN, x = " + mTouchStartRelativeX + ", y = " + mTouchStartRelativeY);
 				break;
 
 			case MotionEvent.ACTION_UP:
@@ -386,6 +399,7 @@ public class SlideMenu extends AppCompatButton {
 					}
 				}
 				invalidate();
+				mFingerDown = false;
 				break;
 
 			case MotionEvent.ACTION_MOVE:
@@ -500,7 +514,7 @@ public class SlideMenu extends AppCompatButton {
 		}
 
 		// draw a background so we'll know how big the canvas is
-		canvas.drawColor(getResources().getColor(R.color.colorAccent));
+//		canvas.drawColor(getResources().getColor(R.color.colorAccent));
 
 		getDrawingRect(mTmpRect);
 
@@ -511,7 +525,7 @@ public class SlideMenu extends AppCompatButton {
 		float radius = ((float)mTmpRect.width()) / 2f;
 		radius -= ((float)CIRCLE_STROKE_WIDTH_DP) / 2f;	// Make sure the circle's stroke stays inside
 														// the bounds of Orig area
-		canvas.drawCircle(x, y, radius, mOrigPaint);
+		canvas.drawCircle(x, y, radius, mFingerDown ? mDownPaint : mOrigPaint);
 
 		// Now draw any option menu
 		if (mLeftActive) {
