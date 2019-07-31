@@ -1,8 +1,10 @@
 package com.sleepfuriously.slidemenu;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.res.TypedArray;
 import android.graphics.Canvas;
+import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Rect;
 import android.graphics.Region;
@@ -61,6 +63,9 @@ public class SlideMenu extends AppCompatButton {
 
 	private static final String TAG = SlideMenu.class.getSimpleName();
 
+	/** default size for menu text */
+	private static final float DEFAULT_MENU_TEXT_SIZE = 16f;
+
 	/** number of DiPs per mm */
 	private static final float DP_PER_MM = 6.299f;
 
@@ -74,9 +79,6 @@ public class SlideMenu extends AppCompatButton {
 	 * in millimeters.
 	 */
 	private static final float ORIG_SIDE_MM = 9f;
-	/** Size of the size of a side of the original square in DiP */
-//	private static final int ORIG_SIDE_DP =
-//			(int) (ORIG_SIDE_MM * DP_PER_MM);
 
 		//===============
 		//  landing zone constants
@@ -131,6 +133,12 @@ public class SlideMenu extends AppCompatButton {
 
 	/** Strings to display in left & right bubbles */
 	private String mLeftText, mRightText;
+
+	/** Colors to draw the text menu texts */
+	private int mLeftTextColor, mRightTextColor;
+
+	/** size of the text for the menus that pop up */
+	private float mMenuTextSize = DEFAULT_MENU_TEXT_SIZE;
 
 	/** Paint for the main body of the widget. Used during onDraw() */
 	private Paint mOrigPaint;
@@ -236,22 +244,25 @@ public class SlideMenu extends AppCompatButton {
 
 		mTmpRect = new Rect();
 
-		// todo: make this look much prettier
 		mOrigPaint = new Paint();
 		mOrigPaint.setColor(getResources().getColor(R.color.background_color));
 		mOrigPaint.setStyle(Paint.Style.STROKE);
-		mOrigPaint.setStrokeWidth(CIRCLE_STROKE_WIDTH_DP);	// todo: make this work with diff screen densities
+		mOrigPaint.setStrokeWidth(CIRCLE_STROKE_WIDTH_DP);
 
 		mDownPaint = new Paint();
 		mDownPaint.setColor(getResources().getColor(R.color.down_color));
 		mDownPaint.setStyle(Paint.Style.STROKE);
-		mDownPaint.setStrokeWidth(CIRCLE_STROKE_WIDTH_DP);	// todo: make this work with diff screen densities
+		mDownPaint.setStrokeWidth(CIRCLE_STROKE_WIDTH_DP);
 
-		// todo: make prettier
 		mLeftPaint = new Paint();
-		mLeftPaint.setColor(getResources().getColor(R.color.left_option_color));
+		mLeftPaint.setColor(mLeftTextColor);
+		mLeftPaint.setTextSize(mMenuTextSize);
+		mLeftPaint.setTextAlign(Paint.Align.CENTER);
+
 		mRightPaint = new Paint();
-		mRightPaint.setColor(getResources().getColor(R.color.right_option_color));
+		mRightPaint.setColor(mRightTextColor);
+		mRightPaint.setTextSize(mMenuTextSize);
+		mRightPaint.setTextAlign(Paint.Align.CENTER);
 
 		// Get display metrics. They'll be useful later.
 		mMetrics = getResources().getDisplayMetrics();
@@ -322,9 +333,17 @@ public class SlideMenu extends AppCompatButton {
 	 * @param attrs		The attrs param from a constructor
 	 */
 	private void parseAttrs(AttributeSet attrs) {
+
 		TypedArray array = getContext().obtainStyledAttributes(attrs, R.styleable.SlideMenu);
-		mLeftText = array.getString(R.styleable.SlideMenu_left_text);
-		mRightText = array.getString(R.styleable.SlideMenu_right_text);
+
+		setMenuTextSize(array.getFloat(R.styleable.SlideMenu_menuTextSize, DEFAULT_MENU_TEXT_SIZE));
+
+		setLeftText(array.getString(R.styleable.SlideMenu_leftText));
+		setRightText(array.getString(R.styleable.SlideMenu_rightText));
+
+		setLeftTextColor(array.getColor(R.styleable.SlideMenu_leftTextColor, Color.BLACK));
+		setRightTextColor(array.getColor(R.styleable.SlideMenu_rightTextColor, Color.BLACK));
+
 		array.recycle();
 	}
 
@@ -369,6 +388,7 @@ public class SlideMenu extends AppCompatButton {
 	 *
 	 * @return  True means the event was completely handled.
 	 */
+	@SuppressLint("ClickableViewAccessibility")	// to remove accessibility warning for blind people
 	@Override
 	public boolean onTouchEvent(MotionEvent event) {
 
@@ -458,20 +478,31 @@ public class SlideMenu extends AppCompatButton {
 	 * one of its children as it needs a Canvas.<br>
 	 *<br>
 	 * preconditions:
-	 *<li>      mLeftPaint      initialized
+	 *<li>      mLeftPaint      		initialized
+	 * <li>		mLeftLzRelativeApRect	initialized with correct data
 	 *
 	 * @param canvas    Standard Canvas to draw on.
-	 *
-	 * @param startRect The starting rect of the widget (NOT the left
-	 *                  options menu area--the regular area).
-	 *                  I think this should be in <em>screen coords</em>. todo: test this!
 	 */
-	private void drawLeftOption(Canvas canvas, Rect startRect) {
-		canvas.drawRect(mLeftLzRelativeApRect, mLeftPaint);
+	private void drawLeftOption(Canvas canvas) {
+
+		// Figure out where to draw the text.
+		// Since the Paint is set to draw text centered on the coords, just find the center
+		// top coord of the left draw area.
+		int y = 0;	// Draw at the top
+		int x = mLeftLzRelativeApRect.centerX();
+
+		canvas.drawText(mLeftText, x, y, mLeftPaint);
 	}
 
 	private void drawRightOption(Canvas canvas) {
-		canvas.drawRect(mRightLzRelativeApRect, mRightPaint);
+
+		// Figure out where to draw the text.
+		// Since the Paint is set to draw text centered on the coords, just find the center
+		// top coord of the right draw area.
+		int y = 0;	// Draw at the top
+		int x = mRightLzRelativeApRect.centerX();
+
+		canvas.drawText(mRightText, x, y, mRightPaint);
 	}
 
 	private void undrawLeftOption() {
@@ -529,8 +560,7 @@ public class SlideMenu extends AppCompatButton {
 
 		// Now draw any option menu
 		if (mLeftActive) {
-//			drawLeftOption(canvas, mTmpRect);
-			drawLeftOption(canvas, mLeftLzRelativeApRect);
+			drawLeftOption(canvas);
 		}
 		else if (mRightActive) {
 			drawRightOption(canvas);
@@ -546,24 +576,54 @@ public class SlideMenu extends AppCompatButton {
 		return mLeftText;
 	}
 
-	public void setLeftText(String leftText) {
-		this.mLeftText = leftText;
+	public void setLeftText(String text) {
+		mLeftText = text;
 	}
 
 	public String getRightText() {
 		return mRightText;
 	}
 
-	public void setRightText(String rightText) {
-		this.mRightText = rightText;
+	public void setRightText(String text) {
+		mRightText = text;
 	}
 
 	public OnSlideMenuListener getOnSlideMenuListener() {
 		return mOnSlideMenuListener;
 	}
 
-	public void setOnSlideMenuListener(OnSlideMenuListener onSlideMenuListener) {
-		this.mOnSlideMenuListener = onSlideMenuListener;
+	public void setOnSlideMenuListener(OnSlideMenuListener slideMenuListener) {
+		mOnSlideMenuListener = slideMenuListener;
+	}
+
+	public int getLeftTextColor() {
+		return mLeftTextColor;
+	}
+
+	public void setLeftTextColor(int color) {
+		mLeftTextColor = color;
+		if (mLeftPaint != null) {
+			mLeftPaint.setColor(color);
+		}
+	}
+
+	public int getRightTextColor() {
+		return mRightTextColor;
+	}
+
+	public void setRightTextColor(int color) {
+		mRightTextColor = color;
+		if (mRightPaint != null) {
+			mRightPaint.setColor(color);
+		}
+	}
+
+	public float getMenuTextSize() {
+		return mMenuTextSize;
+	}
+
+	public void setMenuTextSize(float textSize) {
+		mMenuTextSize = textSize;
 	}
 
 

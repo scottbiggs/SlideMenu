@@ -5,7 +5,17 @@
 -->
 <resources>
 	<declare-styleable name="SlideMenu">
-		<attr name="right_text" format="string"/>
-		<attr name="left_text" format="string"/>
+		<!-- String to display when the right menu pops up -->
+		<attr name="rightText" format="string"/>
+		<!-- String to display when the left menu pops up -->
+		<attr name="leftText" format="string"/>
+
+		<!-- Color to draw the left menu text. Defaults to black. -->
+		<attr name="leftTextColor" format="color" />
+		<!-- Color to draw the right menu text. Defaults to black. -->
+		<attr name="rightTextColor" format="color" />
+
+		<!-- Size of text for menus -->
+		<attr name="menuTextSize" format="float"/>
 	</declare-styleable>
 </resources>
