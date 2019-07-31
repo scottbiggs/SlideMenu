@@ -78,11 +78,22 @@ public class SlideMenu extends AppCompatButton {
 //	private static final int ORIG_SIDE_DP =
 //			(int) (ORIG_SIDE_MM * DP_PER_MM);
 
+		//===============
+		//  landing zone constants
+		//
+
+	/** width and height of landing zones */
+	private static final float
+			LZ_WIDTH_MM = 12f,
+			LZ_HEIGHT_MM = 11f;
+
+
+		//===============
+		//  clipping constants
+		//
+
 	/** Extra height needed above the original widget (in mm) */
 	private static final float CLIP_ADDITIONAL_HEIGHT_MM = 9f;
-	/** additional height in DiPs */
-//	private static final int ADDITIONAL_HEIGHT_DP =
-//			(int) (CLIP_ADDITIONAL_HEIGHT_MM * DP_PER_MM);
 
 	/**
 	 * Extra width needed for the full rect beyond the original widget
@@ -94,26 +105,14 @@ public class SlideMenu extends AppCompatButton {
 	private static final float
 			CLIP_ADDITIONAL_WIDTH_RIGHT_MM = CLIP_ADDITIONAL_WIDTH_LEFT_MM;
 
-	/** same as above, but in DiPs */
-//	private static final int
-//			ADDITIONAL_WIDTH_LEFT_DP =
-//				(int) (CLIP_ADDITIONAL_WIDTH_LEFT_MM * DP_PER_MM);
-//	private static final int
-//			ADDITIONAL_WIDTH_RIGHT_DP =
-//				(int) (CLIP_ADDITIONAL_WIDTH_RIGHT_MM * DP_PER_MM);
-
 	/** width of clip rect in mm */
 	private static final float CLIP_WIDTH_MM =
 			ORIG_SIDE_MM + CLIP_ADDITIONAL_WIDTH_LEFT_MM + CLIP_ADDITIONAL_WIDTH_RIGHT_MM;
-	/** Width of Full rectangle in pixels */
-//	private static final int FULL_WIDTH_DP = (int) (FULL_WIDTH_MM * DP_PER_MM);
 
-	/** height of full rect in mm */
+	/** height of clip rect in mm */
 	private static final float CLIP_HEIGHT_MM =
 			ORIG_SIDE_MM + CLIP_ADDITIONAL_HEIGHT_MM;
 
-	/** Height of Full rectangle in pixels */
-//	private static final int FULL_HEIGHT_DP = (int) (FULL_HEIGHT_MM * DP_PER_MM);
 
 	//-------------------
 	//  data
@@ -190,12 +189,12 @@ public class SlideMenu extends AppCompatButton {
 	private Rect mClipRelativeApRect;
 
 	/**
-	 * Boundaries for the option menu areas.
+	 * Boundaries for the menu landing zones.
 	 * When the user's touch is within these boundaries, the appropriate
 	 * menu should display.  And when the user releases within these
 	 * boundaries, that action will be taken.<br>
 	 */
-	private Rect mLeftRelativeApRect, mRightRelativeApRect;
+	private Rect mLeftLzRelativeApRect, mRightLzRelativeApRect;
 
 	//-------------------
 	//  constructors & initializers
@@ -258,8 +257,8 @@ public class SlideMenu extends AppCompatButton {
 
 
 		// These will be filled in after the layout is done drawing
-		mLeftRelativeApRect = new Rect();
-		mRightRelativeApRect = new Rect();
+		mLeftLzRelativeApRect = new Rect();
+		mRightLzRelativeApRect = new Rect();
 		mOrigRelativeCoordsApRect = new Rect();
 		mOrigScreenCoordsApRect = new Rect();
 
@@ -280,6 +279,20 @@ public class SlideMenu extends AppCompatButton {
 			return;
 		}
 
+		// calc landing zones (relative coords to Orig)
+		int lzWidth = mmToPixels(LZ_WIDTH_MM);
+		int lzHeight = mmToPixels(LZ_HEIGHT_MM);
+
+		mLeftLzRelativeApRect.bottom = mOrigRelativeCoordsApRect.bottom;
+		mLeftLzRelativeApRect.top = mOrigRelativeCoordsApRect.bottom - lzHeight;
+		mLeftLzRelativeApRect.right = mOrigRelativeCoordsApRect.left;
+		mLeftLzRelativeApRect.left = mOrigRelativeCoordsApRect.left - lzWidth;
+
+		mRightLzRelativeApRect.bottom = mOrigRelativeCoordsApRect.bottom;
+		mRightLzRelativeApRect.top = mOrigRelativeCoordsApRect.bottom - lzHeight;
+		mRightLzRelativeApRect.left = mOrigRelativeCoordsApRect.right;
+		mRightLzRelativeApRect.right = mOrigRelativeCoordsApRect.right + lzWidth;
+
 		// calc clipping rect
 		mClipRelativeApRect = new Rect(mOrigRelativeCoordsApRect);
 		mClipRelativeApRect.top = mClipRelativeApRect.bottom - mClipHeightAp;
@@ -289,10 +302,6 @@ public class SlideMenu extends AppCompatButton {
 
 		mClipRelativeApRect.right =  centerX + halfWidth;
 		mClipRelativeApRect.left = centerX - halfWidth;
-
-		// calculate option menu areas
-		calcLeftOptionRect(mOrigRelativeCoordsApRect, mLeftRelativeApRect);
-		calcRightOptionRect(mOrigRelativeCoordsApRect, mRightRelativeApRect);
 	}
 
 
@@ -328,45 +337,6 @@ public class SlideMenu extends AppCompatButton {
 	 */
 	private int mmToPixels(float mm) {
 		return (int) (mPixelDensity * DP_PER_MM * mm);
-	}
-
-
-	/**
-	 * Calculates the location of the left options menu rect based on the
-	 * given rect.
-	 *
-	 * @param startRect         The Rect to start with.
-	 *
-	 * @param leftOptionRect    Will be filled in with the correct values
-	 *                          for the left options menu area for the given
-	 *                          starting rect.
-	 */
-	private void calcLeftOptionRect(Rect startRect, Rect leftOptionRect) {
-
-		// The left option area is 8mm to the left and includes the left third
-		// of the original rect.
-		leftOptionRect.set(startRect);
-		leftOptionRect.left -= getWidth();
-		leftOptionRect.right -= getWidth() + (getWidth() / 3);
-	}
-
-	/**
-	 * Calculates the location of the left options menu rect based on the
-	 * given rect.
-	 *
-	 * @param startRect         The Rect to start with.
-	 *
-	 * @param rightOptionRect    Will be filled in with the correct values
-	 *                          for the left options menu area for the given
-	 *                          starting rect.
-	 */
-	private void calcRightOptionRect(Rect startRect, Rect rightOptionRect) {
-
-		// The right option area is 8mm to the right and includes the right third
-		// of the original rect.
-		rightOptionRect.set(startRect);
-		rightOptionRect.right += getWidth();
-		rightOptionRect.left += getWidth() - (getWidth() / 3);
 	}
 
 
@@ -457,7 +427,7 @@ public class SlideMenu extends AppCompatButton {
 	 * as the left option area.
 	 */
 	private boolean isInLeftActionArea(int x, int y) {
-		return mLeftRelativeApRect.contains(x, y);
+		return mLeftLzRelativeApRect.contains(x, y);
 	}
 
 	/**
@@ -465,7 +435,7 @@ public class SlideMenu extends AppCompatButton {
 	 * as the right option area.
 	 */
 	private boolean isInRightActionArea(int x, int y) {
-		return mRightRelativeApRect.contains(x, y);
+		return mRightLzRelativeApRect.contains(x, y);
 	}
 
 
@@ -483,11 +453,11 @@ public class SlideMenu extends AppCompatButton {
 	 *                  I think this should be in <em>screen coords</em>. todo: test this!
 	 */
 	private void drawLeftOption(Canvas canvas, Rect startRect) {
-		canvas.drawRect(mLeftRelativeApRect, mLeftPaint);
+		canvas.drawRect(mLeftLzRelativeApRect, mLeftPaint);
 	}
 
 	private void drawRightOption(Canvas canvas) {
-		canvas.drawRect(mRightRelativeApRect, mRightPaint);
+		canvas.drawRect(mRightLzRelativeApRect, mRightPaint);
 	}
 
 	private void undrawLeftOption() {
@@ -546,7 +516,7 @@ public class SlideMenu extends AppCompatButton {
 		// Now draw any option menu
 		if (mLeftActive) {
 //			drawLeftOption(canvas, mTmpRect);
-			drawLeftOption(canvas, mLeftRelativeApRect);
+			drawLeftOption(canvas, mLeftLzRelativeApRect);
 		}
 		else if (mRightActive) {
 			drawRightOption(canvas);
