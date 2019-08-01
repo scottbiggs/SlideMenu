@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Animation to display the left landing zone.  It should display
+    forward anytime the user's touch enters the left landing zone
+    area.  When the finger leaves, it should play in reverse.
+-->
+<set xmlns:android="http://schemas.android.com/apk/res/android"
+    >
+
+    <scale
+        android:fromXScale="0.2"
+        android:toXScale="1"
+        android:fromYScale="0.5"
+        android:toYScale="1"
+        android:duration="333"
+        />
+
+</set>

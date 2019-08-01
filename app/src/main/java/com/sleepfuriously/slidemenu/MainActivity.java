@@ -3,6 +3,9 @@ package com.sleepfuriously.slidemenu;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.os.Bundle;
+import android.view.animation.Animation;
+import android.view.animation.AnimationUtils;
+import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -19,6 +22,9 @@ public class MainActivity extends AppCompatActivity
 	SlideMenu myMenu;
 
 	TextView leftTv, rightTV;
+
+	ImageView mCartoon;
+	Animation mAnim;
 
 	//-----------------------
 	//  methods
@@ -38,11 +44,15 @@ public class MainActivity extends AppCompatActivity
 		leftTv.setText(myMenu.getLeftText());
 		rightTV.setText(myMenu.getRightText());
 
+		mCartoon = findViewById(R.id.cartoon_iv);
+		mAnim = AnimationUtils.loadAnimation(this, R.anim.left_landing_zone);
 	}
 
 	@Override
 	public void onSlideLeft() {
 		Toast.makeText(this, "left", Toast.LENGTH_SHORT).show();
+
+		mCartoon.startAnimation(mAnim);
 	}
 
 	@Override
