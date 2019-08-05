@@ -19,7 +19,8 @@ public class MainActivity extends AppCompatActivity
 	//-----------------------
 	//  data
 	//-----------------------
-	SlideMenu myMenu;
+//	SlideMenu myMenu;
+	SlideButton myButton;
 
 	TextView leftTv, rightTV;
 
@@ -35,17 +36,19 @@ public class MainActivity extends AppCompatActivity
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_main);
 
-		myMenu = findViewById(R.id.slide_menu1);
-		myMenu.setOnSlideMenuListener(this);
+//		myMenu = findViewById(R.id.slide_menu1);
+//		myMenu.setOnSlideMenuListener(this);
+
+		myButton = findViewById(R.id.slide_button);
 
 		leftTv = findViewById(R.id.left_tv);
 		rightTV = findViewById(R.id.right_tv);
 
-		leftTv.setText(myMenu.getLeftText());
-		rightTV.setText(myMenu.getRightText());
+//		leftTv.setText(myMenu.getLeftText());
+//		rightTV.setText(myMenu.getRightText());
 
 		mCartoon = findViewById(R.id.cartoon_iv);
-		mAnim = AnimationUtils.loadAnimation(this, R.anim.left_landing_zone);
+		mAnim = AnimationUtils.loadAnimation(this, R.anim.left_lz_anim);
 	}
 
 	@Override
